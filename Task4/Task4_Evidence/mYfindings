@@ -1,0 +1,47 @@
+1. Registry & Process IOCs (From Regshot)
+Agent Tesla is famous for a technique called Process Hollowing, where it launches a legitimate Windows program and injects its malicious payload into it to hide from antivirus. Your registry snapshot caught this behavior perfectly.
+
+Malicious Process Injection (LOLBin Activity): 
+* The malware caused the system to add new registry keys specifically for HKLM\SOFTWARE\WOW6432Node\Microsoft\Tracing\RegSvcs_RASAPI32.
+
+It also created tracing keys for HKLM\SOFTWARE\WOW6432Node\Microsoft\Tracing\RegSvcs_RASMANCS.
+
+What to write in your report: The presence of these RegSvcs tracing keys indicates that Agent Tesla injected itself into RegSvcs.exe (a legitimate .NET framework Microsoft tool). The malware used this trusted process to execute its keystroke logging and data-stealing functions.
+
+Suspicious Value Modifications:
+
+The registry recorded new values being added under these tracing keys, specifically setting the FileDirectory to "%windir%\tracing".
+
+Several EnableFileTracing and EnableConsoleTracing values were added and set to 0x00000000.
+
+2. Network IOCs (From FakeNet PCAPs)
+FakeNet successfully tricked the malware into communicating with your sandbox.
+
+HTTP Proxy Discovery / Exfiltration Attempts:
+
+The malware initiated outbound network connections, executing a GET /wpad.dat HTTP/1.1 request.
+
+The network traffic shows this HTTP GET request was directed to Host: wpad.
+
+The traffic attempted to mask itself using a standard browser string: User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0.
+
+FakeNet Interception Success:
+
+Your PCAP confirms FakeNet intercepted this HTTP traffic and responded with HTTP/1.0 200 OK and Server: FakeNet/1.3.
+
+Network Discovery: * The capture shows repeated Universal Plug and Play (UPnP) discovery queries via M-SEARCH * HTTP/1.1 sent to the multicast address Host: 239.255.255.250:1900.
+
+How to Apply This to Your Incident Response Plan:
+Because you found these specific IOCs, your Incident Response Plan can now be highly targeted:
+
+Detection: Hunt for unexpected RegSvcs.exe processes running on endpoints, especially if spawned from unusual locations like the user's Desktop or Downloads folder.
+
+Containment: Block network traffic trying to automatically resolve unusual WPAD configurations or attempting rapid outbound SMTP/FTP connections, as Agent Tesla uses these protocols to exfiltrate the stolen keystrokes.
+
+
+
+
+ed414c5cd76f7735a701b3c734bc8b7fc0d21e2143eae7925e57451d49b256ea    PE file
+gator3220[.]hostgator[.]com  C2 SERVER
+
+
